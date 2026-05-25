@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>{{ book.title }} &middot; kdp-forge</title>
+<link rel="stylesheet" href="/static/style.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.snow.css">
+<script src="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.js"></script>
+</head>
+<body class="book-page" data-slug="{{ book.slug }}">
+
+<aside class="sidebar">
+  <a href="/" class="back">&larr; All books</a>
+  <h1 class="book-title">{{ book.title }}</h1>
+  {% if book.author %}<p class="book-author">{{ book.author }}</p>{% endif %}
+  <p class="book-stats"><span id="book-chapter-count">{{ chapters|length }}</span> chapters &middot; <span id="book-word-count">{{ '{:,}'.format(total_words) }}</span> words</p>
+
+
+  <div class="export-bar">
+    <a class="export-btn" href="/api/books/{{ book.slug }}/export.epub" download>↓ EPUB</a>
+    <button class="export-btn" id="pdf-trigger" type="button">↓ PDF</button>
+  </div>
+  <a class="meta-link" href="/books/{{ book.slug }}/metadata">KDP metadata &rarr;</a>
+  <details class="pdf-settings" id="pdf-settings">
+    <summary>PDF settings</summary>
+    <label class="field">
+      <span>Trim size</span>
+      <select id="pdf-trim">
+        <option value="5x8">5 × 8 in</option>
+        <option value="5.06x7.81">5.06 × 7.81 in</option>
+        <option value="5.25x8">5.25 × 8 in</option>
+        <option value="5.5x8.5">5.5 × 8.5 in</option>
+        <option value="6x9" selected>6 × 9 in (most common)</option>
+        <option value="6.14x9.21">6.14 × 9.21 in (A5)</option>
+        <option value="6.69x9.61">6.69 × 9.61 in</option>
+        <option value="7x10">7 × 10 in</option>
+        <option value="7.44x9.69">7.44 × 9.69 in</option>
+        <option value="7.5x9.25">7.5 × 9.25 in</option>
+        <option value="8x10">8 × 10 in</option>
+        <option value="8.5x8.5">8.5 × 8.5 in</option>
+        <option value="8.5x11">8.5 × 11 in</option>
+      </select>
+    </label>
+    <label class="field">
+      <span>Estimated page count <em>(controls gutter)</em></span>
+      <input type="number" id="pdf-pages" min="24" max="828" value="200" step="50">
+    </label>
+  </details>
+
+  <ol class="chapter-list">
+  {% for c in chapters %}
+    <li class="chapter-item kind-{{ c.kind }} {% if current and c.id == current.id %}active{% endif %}" data-chapter-id="{{ c.id }}">
+      <a href="?ch={{ c.position }}">
+        <span class="ch-title">{{ c.title }}</span>
+        <span class="ch-meta"><span class="ch-words">{{ '{:,}'.format(c.word_count) }}</span>w &middot; {{ c.kind.replace('_',' ') }}</span>
+      </a>
+    </li>
+  {% endfor %}
+  </ol>
+
+  <section class="snapshots">
+    <header class="snap-head">
+      <h2>Snapshots</h2>
+      <button id="snap-create" class="ghost">+ snapshot</button>
+    </header>
+    <ul id="snap-list" class="snap-list">
+      {% for sn in snapshots %}
+        <li data-snap-id="{{ sn.id }}">
+          <div class="snap-info">
+            <strong>{{ sn.label or 'manual' }}</strong>
+            <time>{{ sn.created_at.strftime('%Y-%m-%d %H:%M') }}</time>
+          </div>
+          <div class="snap-actions">
+            <button class="ghost snap-restore">restore</button>
+            <button class="ghost snap-delete" title="Delete snapshot">×</button>
+          </div>
+        </li>
+      {% endfor %}
+    </ul>
+  </section>
+</aside>
+
+<main class="reader">
+  {% if current %}
+    <article data-chapter-id="{{ current.id }}">
+      <header class="chapter-head">
+        <p class="ch-kind">
+          <select id="chapter-kind" data-current="{{ current.kind }}">
+            <option value="front_title">Title page</option>
+            <option value="front_copyright">Copyright</option>
+            <option value="front_dedication">Dedication</option>
+            <option value="front_toc">Table of contents</option>
+            <option value="front_acknowledgments">Acknowledgments (front)</option>
+            <option value="front_foreword">Foreword</option>
+            <option value="front_preface">Preface / Introduction</option>
+            <option value="body">Body chapter</option>
+            <option value="back_about">About the author</option>
+            <option value="back_alsoby">Also by</option>
+            <option value="back_acknowledgments">Acknowledgments (back)</option>
+          </select>
+        </p>
+        <h1 id="chapter-title" contenteditable="true" spellcheck="true">{{ current.title }}</h1>
+        <div class="chapter-meta">
+          <span><span id="current-word-count">{{ '{:,}'.format(current.word_count) }}</span> words</span>
+          <span class="save-status" id="save-status">saved</span>
+        </div>
+      </header>
+      <div class="ai-toolbar">
+        <button type="button" class="ai-btn" data-ai-tool="copyedit">✨ Copyedit</button>
+        <button type="button" class="ai-btn" data-ai-tool="critique">✨ Critique</button>
+        <button type="button" class="ai-btn" data-ai-tool="hook">✨ Hook check</button>
+      </div>
+      <div id="editor"></div>
+      <template id="initial-html">{{ current.html|safe }}</template>
+    </article>
+  {% else %}
+    <p class="empty">No chapters in this book.</p>
+  {% endif %}
+</main>
+
+<dialog id="ai-modal">
+  <header class="ai-modal-head">
+    <h3 id="ai-modal-title">AI</h3>
+    <button class="ghost" type="button" id="ai-modal-close">×</button>
+  </header>
+  <div id="ai-modal-body" class="ai-modal-body"></div>
+</dialog>
+<script src="/static/editor.js"></script>
+</body>
+</html>

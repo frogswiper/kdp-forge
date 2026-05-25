@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>{{ book.title }} &middot; KDP metadata</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body class="metadata-page">
+<header class="page-header">
+  <a href="/books/{{ book.slug }}" class="back">&larr; back to manuscript</a>
+  <h1>KDP submission metadata</h1>
+  <p class="tag">{{ book.title }}</p>
+</header>
+
+{% if saved %}<div class="banner ok">Saved.</div>{% endif %}
+
+<main class="meta-main">
+<form method="post" class="metadata-form">
+
+  <section class="card">
+    <h2>Book details</h2>
+    <div class="grid-2">
+      <label class="field">
+        <span>Language</span>
+        <input type="text" name="language" value="{{ book.language or 'en' }}" maxlength="8">
+      </label>
+      <label class="field">
+        <span>Title</span>
+        <input type="text" name="title" value="{{ book.title or '' }}" required>
+      </label>
+      <label class="field">
+        <span>Subtitle</span>
+        <input type="text" name="subtitle" value="{{ book.subtitle or '' }}">
+      </label>
+      <label class="field">
+        <span>Author</span>
+        <input type="text" name="author" value="{{ book.author or '' }}">
+      </label>
+      <label class="field">
+        <span>Series name</span>
+        <input type="text" name="series_name" value="{{ book.series_name or '' }}">
+      </label>
+      <label class="field">
+        <span>Series number</span>
+        <input type="text" name="series_number" value="{{ book.series_number or '' }}" placeholder="1, 2, 1.5…">
+      </label>
+      <label class="field">
+        <span>Edition</span>
+        <input type="text" name="edition" value="{{ book.edition or '' }}" placeholder="1, 2nd, Revised…">
+      </label>
+      <label class="field">
+        <span>Publisher</span>
+        <input type="text" name="publisher" value="{{ book.publisher or 'Independently Published' }}">
+      </label>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>
+      Description <small>(up to ~4,000 chars)</small>
+      <button type="button" class="ai-btn" data-ai-tool="blurb">✨ Generate blurb</button>
+    </h2>
+    <textarea name="description" rows="10" maxlength="4000"
+              placeholder="The blurb that appears on the Amazon product page.">{{ book.description or '' }}</textarea>
+    <p class="char-count"><span id="desc-count">{{ (book.description or '')|length }}</span> / 4000</p>
+  </section>
+
+  <section class="card">
+    <h2>
+      Keywords <small>(up to 7)</small>
+      <button type="button" class="ai-btn" data-ai-tool="keywords">✨ Suggest keywords</button>
+    </h2>
+    <p class="hint">One concept per line, or comma-separated. KDP uses these for ad targeting & search.</p>
+    <textarea name="keywords" rows="4"
+              placeholder="literary fiction&#10;single father&#10;memoir-style novel">{{ keywords_text }}</textarea>
+  </section>
+
+  <section class="card">
+    <h2>
+      BISAC categories <small>(up to 3)</small>
+      <button type="button" class="ai-btn" data-ai-tool="bisac">✨ Suggest BISAC</button>
+    </h2>
+    <p class="hint">One per line. Format: <code>FIC019000 LITERARY</code> or any human label.</p>
+    <textarea name="categories" rows="4"
+              placeholder="FIC019000 LITERARY&#10;FIC044000 CONTEMPORARY WOMEN">{{ categories_text }}</textarea>
+  </section>
+
+  <section class="card">
+    <h2>Children's age & grade range <small>(optional)</small></h2>
+    <div class="grid-2">
+      <label class="field">
+        <span>Min age</span>
+        <input type="number" name="age_min" min="0" max="18" value="{{ book.age_min or '' }}">
+      </label>
+      <label class="field">
+        <span>Max age</span>
+        <input type="number" name="age_max" min="0" max="18" value="{{ book.age_max or '' }}">
+      </label>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>Content & rights</h2>
+    <label class="check">
+      <input type="checkbox" name="adult_content" value="1" {% if book.adult_content %}checked{% endif %}>
+      <span>Contains adult content</span>
+    </label>
+    <label class="check">
+      <input type="checkbox" name="public_domain" value="1" {% if book.public_domain %}checked{% endif %}>
+      <span>This is a public domain work</span>
+    </label>
+  </section>
+
+  <section class="card">
+    <h2>Identifiers</h2>
+    <div class="grid-2">
+      <label class="field">
+        <span>ISBN <em>(leave blank to use the free KDP-provided one)</em></span>
+        <input type="text" name="isbn" value="{{ book.isbn or '' }}">
+      </label>
+      <label class="field">
+        <span>Publication date <em>(leave blank to let KDP assign)</em></span>
+        <input type="date" name="pub_date" value="{{ book.pub_date or '' }}">
+      </label>
+    </div>
+  </section>
+
+  <div class="actions">
+    <button type="submit">Save metadata</button>
+    <a class="export-btn" href="/api/books/{{ book.slug }}/kdp-submission.json" download>↓ JSON bundle</a>
+    <a class="export-btn" href="/api/books/{{ book.slug }}/kdp-submission.md" download>↓ Markdown bundle</a>
+  </div>
+</form>
+</main>
+
+<dialog id="ai-modal">
+  <header class="ai-modal-head">
+    <h3 id="ai-modal-title">AI suggestions</h3>
+    <button class="ghost" type="button" id="ai-modal-close">×</button>
+  </header>
+  <div id="ai-modal-body" class="ai-modal-body">
+    <p class="muted">…</p>
+  </div>
+</dialog>
+
+<script>
+const desc = document.querySelector('textarea[name="description"]');
+const count = document.getElementById('desc-count');
+if (desc && count) {
+  desc.addEventListener('input', () => count.textContent = desc.value.length);
+}
+
+const SLUG = {{ book.slug|tojson }};
+const modal = document.getElementById('ai-modal');
+const modalTitle = document.getElementById('ai-modal-title');
+const modalBody = document.getElementById('ai-modal-body');
+document.getElementById('ai-modal-close').addEventListener('click', () => modal.close());
+
+function escapeHtml(s) {
+  return (s || '').replace(/[&<>"']/g, ch => ({
+    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+  }[ch]));
+}
+
+async function runAI(tool) {
+  const titles = { blurb: 'Blurb candidates', keywords: 'Suggested keywords', bisac: 'Suggested BISAC categories' };
+  modalTitle.textContent = titles[tool] || 'AI';
+  modalBody.innerHTML = '<p class="muted">Asking the model… (10–60 sec on first run)</p>';
+  modal.showModal();
+  try {
+    const r = await fetch(`/api/books/${SLUG}/ai/${tool}`, { method: 'POST', headers: {'content-type':'application/json'}, body: '{}' });
+    if (!r.ok) throw new Error(`HTTP ${r.status}: ${await r.text()}`);
+    const data = await r.json();
+    if (tool === 'blurb') renderBlurb(data);
+    else if (tool === 'keywords') renderKeywords(data);
+    else if (tool === 'bisac') renderBisac(data);
+  } catch (e) {
+    modalBody.innerHTML = `<p class="error">Error: ${escapeHtml(String(e.message || e))}</p>`;
+  }
+}
+
+function renderBlurb(data) {
+  const cands = (data.candidates || []);
+  if (!cands.length) { modalBody.innerHTML = '<p class="error">No candidates.</p>'; return; }
+  modalBody.innerHTML = cands.map((c, i) => `
+    <article class="ai-card">
+      <header><strong>${escapeHtml(c.length || ('Option ' + (i+1)))}</strong> <span class="muted">${(c.text || '').length} chars</span></header>
+      <p>${escapeHtml(c.text || '')}</p>
+      <button type="button" class="ai-pick" data-pick="${escapeHtml(c.text || '')}">Use this</button>
+    </article>
+  `).join('');
+  modalBody.querySelectorAll('.ai-pick').forEach(b => b.addEventListener('click', () => {
+    const ta = document.querySelector('textarea[name="description"]');
+    ta.value = b.dataset.pick;
+    ta.dispatchEvent(new Event('input'));
+    modal.close();
+  }));
+}
+
+function renderKeywords(data) {
+  const kws = (data.keywords || []);
+  if (!kws.length) { modalBody.innerHTML = '<p class="error">No keywords returned.</p>'; return; }
+  modalBody.innerHTML = `
+    <ol class="ai-list">
+      ${kws.map(k => `
+        <li>
+          <label><input type="checkbox" value="${escapeHtml(k.term || '')}" checked>
+            <strong>${escapeHtml(k.term || '')}</strong></label>
+          <p class="muted">${escapeHtml(k.rationale || '')}</p>
+        </li>
+      `).join('')}
+    </ol>
+    <button type="button" class="ai-pick-many" data-field="keywords">Use selected (overwrite)</button>
+  `;
+  hookPickMany();
+}
+
+function renderBisac(data) {
+  const cats = (data.categories || []);
+  if (!cats.length) { modalBody.innerHTML = '<p class="error">No categories returned.</p>'; return; }
+  modalBody.innerHTML = `
+    <ol class="ai-list">
+      ${cats.map(c => `
+        <li>
+          <label><input type="checkbox" value="${escapeHtml((c.code || '') + ' ' + (c.label || ''))}">
+            <strong>${escapeHtml(c.code || '')}</strong> ${escapeHtml(c.label || '')}</label>
+          <p class="muted">${escapeHtml(c.why || '')}</p>
+        </li>
+      `).join('')}
+    </ol>
+    <button type="button" class="ai-pick-many" data-field="categories">Use selected (overwrite, max 3)</button>
+  `;
+  hookPickMany();
+}
+
+function hookPickMany() {
+  modalBody.querySelectorAll('.ai-pick-many').forEach(btn => btn.addEventListener('click', () => {
+    const field = btn.dataset.field;
+    const max = field === 'categories' ? 3 : 7;
+    const picks = [...modalBody.querySelectorAll('input[type=checkbox]:checked')].map(c => c.value).slice(0, max);
+    const ta = document.querySelector(`textarea[name="${field}"]`);
+    ta.value = picks.join('\n');
+    modal.close();
+  }));
+}
+
+document.querySelectorAll('.ai-btn').forEach(b => b.addEventListener('click', () => runAI(b.dataset.aiTool)));
+</script>
+</body>
+</html>

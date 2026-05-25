@@ -1,0 +1,31 @@
+# Local data — never commit user manuscripts or the SQLite DB
+data/
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+
+# Local config
+.env
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# Editor / OS
+.DS_Store
+.idea/
+.vscode/
+*.swp
+
+# Build artifacts
+*.epub
+*.pdf
+!docs/**/*.png
+
+# Personal / internal-only docs — kept in working tree but not published
+ONBOARDING.md
+PLAN.md

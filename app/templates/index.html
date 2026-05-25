@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>kdp-forge</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body class="home">
+<main>
+  <header>
+    <h1>kdp-forge</h1>
+    <p class="tag">Manuscript &rarr; Amazon KDP, on your own server.</p>
+  </header>
+
+  <section class="card">
+    <h2>Import a manuscript</h2>
+    <form action="/books/import" method="post" enctype="multipart/form-data" class="import-form">
+      <label class="field">
+        <span>File</span>
+        <input type="file" name="file" accept="{{ supported|join(',') }}" required>
+        <small>Supported: {{ supported|join(', ') }}</small>
+      </label>
+      <label class="field">
+        <span>Title <em>(optional &mdash; defaults to filename)</em></span>
+        <input type="text" name="title" placeholder="My Novel">
+      </label>
+      <label class="field">
+        <span>Author <em>(optional)</em></span>
+        <input type="text" name="author" placeholder="A. Writer">
+      </label>
+      <button type="submit">Import</button>
+    </form>
+  </section>
+
+  <section class="card">
+    <h2>Books <span class="count">{{ books|length }}</span></h2>
+    {% if books %}
+    <ul class="book-list">
+      {% for b in books %}
+        <li>
+          <a href="/books/{{ b.slug }}" class="book-link">
+            <strong>{{ b.title }}</strong>
+            {% if b.author %}<span class="byline">by {{ b.author }}</span>{% endif %}
+            <span class="meta">{{ b.source_format or '—' }} &middot; {{ b.created_at.strftime('%Y-%m-%d') }}</span>
+          </a>
+          <form action="/books/{{ b.slug }}/delete" method="post"
+                onsubmit="return confirm('Delete &quot;{{ b.title }}&quot;? This removes all chapters.');">
+            <button type="submit" class="ghost danger">Delete</button>
+          </form>
+        </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p class="empty">No books yet. Import a manuscript above to get started.</p>
+    {% endif %}
+  </section>
+
+  <footer>kdp-forge &middot; <a href="/health">health</a></footer>
+</main>
+</body>
+</html>

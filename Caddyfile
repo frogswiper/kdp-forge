@@ -1,0 +1,16 @@
+{
+	default_sni {$SITE_HOST:localhost}
+	servers {
+		strict_sni_host insecure_off
+		listener_wrappers {
+			http_redirect
+			tls
+		}
+	}
+}
+
+{$SITE_HOST:localhost}:{$SITE_PORT:2005} {
+	tls internal
+	encode gzip zstd
+	reverse_proxy kdp-forge:8000
+}

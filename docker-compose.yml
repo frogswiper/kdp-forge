@@ -1,0 +1,35 @@
+services:
+  kdp-forge:
+    build: .
+    container_name: kdp-forge
+    restart: unless-stopped
+    expose:
+      - "8000"
+    volumes:
+      - ./data:/data
+    environment:
+      DATA_DIR: "/data"
+      OLLAMA_URL: "${OLLAMA_URL:-http://host.docker.internal:11434}"
+      OLLAMA_MODEL: "${OLLAMA_MODEL:-gemma4:31b-cloud}"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  caddy:
+    image: caddy:2-alpine
+    container_name: kdp-forge-caddy
+    restart: unless-stopped
+    ports:
+      - "${SITE_PORT:-2005}:${SITE_PORT:-2005}"
+    environment:
+      SITE_HOST: "${SITE_HOST:-localhost}"
+      SITE_PORT: "${SITE_PORT:-2005}"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - kdp-forge
+
+volumes:
+  caddy_data:
+  caddy_config:
