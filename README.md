@@ -248,4 +248,4 @@ kdp-forge/
 
 MIT — see [LICENSE](LICENSE).
 
-Built by [frogswiper](https://github.com/frogswiper). Modeled on [Reedsy Studio](https://reedsy.com/studio) but standalone, self-hosted, and KDP-shaped.
+Built by [frogswiper](https://github.com/frogswiper). Self-hosted, and KDP-shaped.
